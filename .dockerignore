@@ -1,0 +1,11 @@
+# Igual que .gitignore, pero para lo que Docker copia dentro de la imagen.
+# Evita copiar basura innecesaria (y evita filtrar secretos por accidente).
+
+.env
+venv/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+db.sqlite3
+*.log

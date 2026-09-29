@@ -1,0 +1,51 @@
+# ==============================================================================
+# docker-compose.yml
+#
+# Un Dockerfile construye UNA imagen. docker-compose orquesta VARIOS
+# contenedores juntos (aquí: tu app Django + una base de datos Postgres local)
+# y los conecta en una red interna, con un solo comando: `docker compose up`.
+#
+# Para practicar, usamos un Postgres LOCAL en un contenedor (no tu Neon real),
+# así puedes romper y recrear la base de datos las veces que quieras sin
+# tocar los datos reales de producción.
+# ==============================================================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: comoarroz
+      POSTGRES_USER: comoarroz_user
+      POSTGRES_PASSWORD: comoarroz_pass_local
+    volumes:
+      # Esto hace que los datos de Postgres sobrevivan aunque borres el
+      # contenedor (si no, cada vez que reinicias pierdes todo lo guardado)
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    # Reconstruye la imagen si cambias el Dockerfile o requirements.txt:
+    # docker compose up --build
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      # Monta tu código local dentro del contenedor "en vivo", así no
+      # necesitas reconstruir la imagen cada vez que cambias una línea
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      # Nombres verificados contra config/settings.py
+      - DJANGO_DEBUG=True
+      - DJANGO_SECRET_KEY=clave-de-desarrollo-solo-para-practicar
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+      - DATABASE_URL=postgres://comoarroz_user:comoarroz_pass_local@db:5432/comoarroz
+      # ⬆ nota: el host es "db", el nombre del servicio de arriba — no
+      # "localhost". Dentro de la red de Docker, los contenedores se
+      # encuentran entre sí por el nombre del servicio.
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
